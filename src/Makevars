@@ -1,0 +1,22 @@
+# rblat: compile the vendored BLAT (jkweb + jkOwnLib) sources into rblat.so.
+#
+# R's default rule compiles every src/*.c into OBJECTS and links them, which is
+# exactly the 67-file minimal set derived via the linker's -why_load pass. We do
+# NOT use upstream's common.mk / MACHTYPE machinery; only the flags below matter.
+
+# MACHTYPE_* is only consulted in ppc/alpha guards; the value is otherwise unused,
+# but we set it for fidelity with the upstream build on any arch.
+MACHTYPE = $(shell uname -m)
+
+PKG_CPPFLAGS = -I. \
+  -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_GNU_SOURCE \
+  -DMACHTYPE_$(MACHTYPE)
+
+# The Kent sources predate C23: they use K&R empty-paren prototypes (void f())
+# and function-pointer params, which C23 reinterprets as (void) and rejects.
+# R 4.6 compiles with -std=gnu23, so we pin an older standard (ours wins as it
+# appears later on the command line). Also silence the loudest warnings.
+PKG_CFLAGS = -std=gnu17 \
+  -Wno-implicit-function-declaration -Wno-format -Wno-pointer-sign -Wno-deprecated-non-prototype
+
+PKG_LIBS = -lz -lm

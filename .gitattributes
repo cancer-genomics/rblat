@@ -1,0 +1,7 @@
+# Normalize all text to LF in the repo and on checkout. This C/R codebase is
+# developed on Unix; CRLF in vendored BLAT sources or Makevars can break builds.
+* text=auto eol=lf
+
+# Treat fixtures/goldens as text with LF too (comparisons rely on exact bytes).
+*.fa   text eol=lf
+*.psl  text eol=lf

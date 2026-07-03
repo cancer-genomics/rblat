@@ -1,0 +1,31 @@
+# Compiled objects / shared libraries (rebuilt by R CMD INSTALL)
+*.o
+*.so
+*.dll
+*.dylib
+*.a
+src/symbols.rds
+
+# R CMD build / check outputs
+*.Rcheck/
+*.tar.gz
+/doc/
+/Meta/
+
+# Vignette render artifacts (the .Rmd source IS tracked)
+vignettes/*.html
+vignettes/*_files/
+vignettes/*.R
+inst/doc/
+
+# RStudio
+.Rproj.user/
+*.Rproj
+
+# R session leftovers
+.Rhistory
+.RData
+.Rapp.history
+
+# OS
+.DS_Store

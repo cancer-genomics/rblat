@@ -1,0 +1,51 @@
+rblat LICENSE
+=============
+
+rblat bundles and directly links the BLAT source code (v35) written by Jim Kent,
+via the djhshih/blat fork. rblat is therefore governed by, and distributed under,
+the ORIGINAL BLAT license reproduced verbatim below. rblat does not, and cannot,
+relicense the bundled BLAT code, and the same terms extend to the rblat package
+as a whole (see "rblat glue code" at the end).
+
+-------------------------------------------------------------------------------
+ORIGINAL BLAT LICENSE (verbatim, from the djhshih/blat fork's LICENSE.txt; the
+per-file copyright headers read "Copyright <years> Jim Kent.  All rights
+reserved."):
+
+    All files are copyrighted, but license is hereby granted for personal,
+    academic, and non-profit use.  A license is also granted for the contents
+    of the top level lib and inc directories for commercial users.  Commercial
+    users should contact jim_kent@pacbell.net for access to other modules.
+-------------------------------------------------------------------------------
+
+What this means for rblat (IMPORTANT):
+
+  * Personal, academic, and non-profit use of rblat is permitted under the
+    grant above.
+
+  * The commercial grant in the original license covers ONLY the top-level
+    `lib` and `inc` directories. rblat links the BLAT ALIGNER CORE -- the
+    "other modules" -- including blat.c (as src/rblat_blat.c), genoFind.c,
+    fuzzyFind.c, supStitch.c, gfClientLib.c, gfBlatLib.c, and bandExt.c.
+    These are NOT within the lib/inc commercial grant.
+
+  * Therefore COMMERCIAL USE of rblat (including use at or on behalf of a
+    for-profit entity) requires a separate license for those modules. Contact
+    jim_kent@pacbell.net, or Kent Informatics (https://kentinformatics.com),
+    for commercial licensing of BLAT / gfServer / gfClient and In-Silico PCR.
+
+  * Because of the above, rblat CANNOT be redistributed under a permissive
+    open-source license (MIT, GPL, etc.). It inherits the BLAT terms in full.
+
+  This is directly relevant to for-profit affiliations: running rblat there requires a commercial BLAT
+  license from Kent Informatics.
+
+-------------------------------------------------------------------------------
+rblat glue code
+---------------
+
+The rblat-specific glue authored for this package -- the R wrappers, the C
+registration/entry points and engine adapter (src/rblat_*.c, src/rblat.h),
+the build files, tests, and documentation -- is Copyright (c) 2026 Robert
+Scharpf. As distributed with the bundled BLAT sources, the combined work is
+governed by the BLAT license above.

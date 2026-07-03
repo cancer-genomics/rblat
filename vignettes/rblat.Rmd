@@ -1,0 +1,199 @@
+---
+title: "In-process BLAT: replacing the command-line blat step"
+author: "Rob Scharpf"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{In-process BLAT: replacing the command-line blat step}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+library(rblat)
+# Paths to the vendored trellis regression fixtures (see
+# inst/extdata/trellis/README.md for provenance).
+ex <- function(...) system.file("extdata", "trellis", ..., package = "rblat")
+```
+
+## Motivation: the `trellis` re-alignment step
+
+`trellis` detects somatic structural rearrangements from whole-genome sequencing.
+A key quality-control step re-aligns candidate reads with
+[BLAT](https://genome.ucsc.edu/FAQ/FAQblat.html): reads that were unmapped (or
+suspiciously mapped) near a candidate junction are re-aligned to check whether
+they support a *novel* sequence junction rather than mapping cleanly elsewhere.
+
+Today that step shells out to the command-line `blat` binary. Concretely,
+`trellis` does something like:
+
+```{r trellis-today, eval = FALSE}
+## --- how trellis re-aligns reads today (illustrative) ---
+## `tags` is a data.frame of reads with columns qname, read, seq, ...
+writeToFasta(tags, "reads.fa")                       # write a query FASTA
+cmd <- paste("blat", "-minScore=0", "-stepSize=1",   # shell out to the binary
+             "reference.fa", "reads.fa", "out.psl")
+system(cmd)                                          # external process
+blat <- readBlat("out.psl")                          # read the .psl back in
+blat <- annotateBlatRecords(blat, tags)              # downstream QC
+rear <- blatScores(blat, tags, id = "SAMPLE")        # pass/fail per rearrangement
+```
+
+That works, but it carries the usual costs of an external binary: `blat` must be
+installed and on the `PATH`, the pipeline pays process-spawn and disk-I/O
+overhead for every sample, and the FASTA/PSL temp files are a source of
+portability and reproducibility friction.
+
+**`rblat` runs the very same BLAT engine inside R via `.Call`** — no `system()`
+call, no external binary, and (optionally) no files at all. The result is the
+identical 21-column PSL `data.frame` that `readBlat()` produces, so it drops
+straight into the existing downstream code.
+
+```{r version}
+rblat_version()
+```
+
+## Step 1 — a drop-in for the command-line call
+
+The most conservative change keeps FASTA files exactly where they are and only
+replaces the `system("blat …")` + `readBlat()` pair with a single `rblat()`
+call. `rblat()` accepts FASTA paths for both the target/database and the query:
+
+```{r file-mode}
+# These fixtures are the exact inputs from trellis/svbams's blat test, bundled
+# with rblat. `golden.psl` is the output of the *external* command-line blat.
+aln <- rblat(ex("ref1.fa"), ex("query1.fa"),
+             minScore = 0, stepSize = 1)   # same flags trellis passes
+aln[, c("match", "strand", "Qname", "Tname", "Tstart", "Tend",
+        "blockcount", "blockSizes")]
+```
+
+The column names are exactly `trellis`'s `blat_colnames`, in the same order:
+
+```{r colnames}
+identical(names(aln), blat_colnames)
+```
+
+And the result is **byte-for-byte identical** to what the external command-line
+`blat` produced on the same inputs — `rblat` ships those real command-line
+goldens so this equivalence is checked on every build:
+
+```{r golden}
+golden <- readPsl(ex("golden1.psl"))   # output of external command-line blat
+identical(aln, golden)
+```
+
+So a first-pass integration is a one-line swap:
+
+```{r swap, eval = FALSE}
+## before:
+writeToFasta(tags, "reads.fa"); system(paste("blat …", "reads.fa", "out.psl"))
+blat <- readBlat("out.psl")
+## after:
+blat <- rblat("reference.fa", "reads.fa", minScore = 0, stepSize = 1)
+```
+
+Everything downstream (`annotateBlatRecords()`, `blatScores()`, …) is unchanged
+because it receives the identical `data.frame`.
+
+## Step 2 — a more direct integration (no files)
+
+The re-alignment reads already live in memory as a `data.frame` — `trellis`
+*writes* them to a FASTA only because the external `blat` needs a file. `rblat`
+removes that constraint: pass the sequences directly as a **named character
+vector** (names are the sequence identifiers) or a `Biostrings::DNAStringSet`.
+The whole alignment then touches no disk at all.
+
+```{r mem-mode}
+# A named character vector: names = identifiers, values = sequences.
+# (Here we read the fixtures in, but in trellis these come straight from `tags`.)
+read_fasta <- function(path) {
+  ln <- readLines(path, warn = FALSE); ln <- ln[nzchar(ln)]
+  h  <- grepl("^>", ln)
+  nm <- sub("[[:space:]].*$", "", sub("^>", "", ln[h]))
+  sq <- tapply(gsub("[[:space:]]", "", ln[!h]), cumsum(h)[!h], paste, collapse = "")
+  stats::setNames(as.character(sq), nm)
+}
+ref   <- read_fasta(ex("ref1.fa"))
+reads <- read_fasta(ex("query1.fa"))
+str(reads)
+
+aln_mem <- rblat(ref, reads, minScore = 0, stepSize = 1)
+identical(aln_mem, golden)   # same answer as the file-based / command-line run
+```
+
+`Biostrings` sequences work the same way, which is convenient when the reads are
+already carried as an `XStringSet`:
+
+```{r biostrings, eval = requireNamespace("Biostrings", quietly = TRUE)}
+ref_ss   <- Biostrings::DNAStringSet(ref)
+reads_ss <- Biostrings::DNAStringSet(reads)
+identical(rblat(ref_ss, reads_ss, minScore = 0, stepSize = 1), golden)
+```
+
+## What a future `trellis` integration could look like
+
+Because `trellis` already holds the reads as a `data.frame` (`tags`, with
+`qname`, `read`, and `seq` columns), the direct integration collapses the
+write-FASTA / spawn-blat / read-PSL trio into a single in-memory call. A thin
+adapter — living in `trellis`, not requiring any change to `rblat` — might be:
+
+```{r future, eval = FALSE}
+## Candidate replacement for the external-blat step, no files, no system():
+realignReads <- function(tags, reference, ...) {
+  # trellis already names reads "qname_read" when writing the FASTA
+  reads <- setNames(tags$seq, paste(tags$qname, tags$read, sep = "_"))
+  reads <- reads[!duplicated(names(reads))]
+  rblat(reference, reads, minScore = 0, stepSize = 1, ...)   # -> blat_colnames df
+}
+
+blat <- realignReads(tags, reference = "reference.fa")
+blat <- annotateBlatRecords(blat, tags)     # unchanged
+rear <- blatScores(blat, tags, id = "SAMPLE")
+```
+
+`reference` can itself be in-memory (a `DNAStringSet` of the local windows around
+each candidate junction), so a per-junction re-alignment need not read or write
+a single file. The return value is the same `blat_colnames` `data.frame`
+`readBlat()` returns, so `annotateBlatRecords()` and `blatScores()` are
+untouched. This keeps `rblat` a self-contained provider that `trellis` can adopt
+incrementally: swap the `system()` call first (Step 1), then drop the FASTA
+round-trip when convenient (Step 2).
+
+> **Note.** This vignette illustrates the integration; it does not modify
+> `trellis`. `rblat`'s own test suite regression-tests these fixtures against the
+> command-line-blat goldens shown above, so the equivalence downstream code
+> relies on is verified without any dependency on `trellis`.
+
+## Options and modes
+
+`rblat()` exposes BLAT's common tuning options as named arguments. Each numeric
+option defaults to `NULL`, meaning "use BLAT's own *type-aware* default" (e.g.
+`tileSize` is 11 for DNA but 5 for protein); set a value only to override.
+
+```{r options, eval = FALSE}
+rblat(ref, reads, minScore = 30, minIdentity = 95)   # stricter DNA search
+rblat(ref, reads, t = "prot", q = "prot")            # protein vs protein
+rblat(ref, reads, oneOff = TRUE, fastMap = TRUE)      # logical flags
+rblat(ref, reads, args = c("-fine"))                  # raw pass-through flags
+```
+
+A query with no acceptable alignment returns a well-typed **empty**
+`data.frame` (not an error), so downstream `nrow()`/`rbind()` logic is safe:
+
+```{r empty}
+empty <- rblat(ref, reads, minScore = 10000)   # impossibly high threshold
+nrow(empty)
+identical(names(empty), blat_colnames)
+```
+
+## Session information
+
+```{r session}
+sessionInfo()
+```

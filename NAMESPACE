@@ -1,0 +1,5 @@
+useDynLib(rblat, .registration = TRUE)
+export(rblat)
+export(rblat_version)
+export(readPsl)
+export(blat_colnames)

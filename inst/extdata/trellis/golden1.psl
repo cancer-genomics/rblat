@@ -1,0 +1,7 @@
+psLayout version 3
+
+match	mis- 	rep. 	N's	Q gap	Q gap	T gap	T gap	strand	Q        	Q   	Q    	Q  	T        	T   	T    	T  	block	blockSizes 	qStarts	 tStarts
+     	match	match	   	count	bases	count	bases	      	name     	size	start	end	name     	size	start	end	count
+---------------------------------------------------------------------------------------------------------------------------------------------------------------
+25	0	0	0	0	0	0	0	+	1803120GRCF3005590BCC77JANXX_4_1207_11393_8873_0:0:0:0:0_R1	46	21	46	chr2	30	0	25	1	25,	21,	0,
+21	0	0	0	0	0	0	0	+	1803120GRCF3005590BCC77JANXX_4_1207_11393_8873_0:0:0:0:0_R1	46	0	21	chr1	30	9	30	1	21,	0,	9,

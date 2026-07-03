@@ -1,0 +1,24 @@
+Package: rblat
+Type: Package
+Title: In-Process BLAT Sequence Alignment
+Version: 0.0.0.9000
+Authors@R: person("Robert", "Scharpf", email = "rscharpf@jhu.edu", role = c("aut", "cre"))
+Description: Runs the BLAT (BLAST-Like Alignment Tool) engine entirely within R
+    via a compiled C backend, with no system() calls to an external blat binary.
+    The vendored BLAT sources (Jim Kent; djhshih/blat fork) are linked directly
+    into the package shared library and driven through .Call entry points.
+    Intended as an in-process replacement for the command-line blat step used by
+    the 'trellis' package.
+License: file LICENSE
+Encoding: UTF-8
+NeedsCompilation: yes
+Imports:
+    methods,
+    utils
+Suggests:
+    Biostrings,
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
+RoxygenNote: 7.3.2
