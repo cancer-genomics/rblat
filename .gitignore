@@ -29,3 +29,8 @@ inst/doc/
 
 # OS
 .DS_Store
+
+# Editor lock / autosave files (Emacs)
+.#*
+\#*\#
+*~
