@@ -294,5 +294,4 @@ BLAT aligner core (the "other modules" — `blat.c`/`rblat_blat.c`, `genoFind.c`
 (https://kentinformatics.com) / jim_kent@pacbell.net. rblat therefore cannot be
 redistributed under a permissive OSS license. The rblat glue code is released
 under these same terms for consistency (not a more permissive license).
-`DESCRIPTION` uses `License: file LICENSE`. Relevant given Delfi/Artemyx
-affiliations.
+`DESCRIPTION` uses `License: file LICENSE`. 
