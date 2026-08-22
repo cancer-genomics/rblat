@@ -7,7 +7,7 @@ a drop-in replacement for that step.
 
 ## Provenance
 
-Copied verbatim from `svbams` (Scharpf lab, `cancer_genomics/svbams`):
+Copied verbatim from `svbams` (Cancer Genomics lab, `cancer_genomics/svbams`):
 
 | rblat file    | source in svbams                        |
 |---------------|-----------------------------------------|
