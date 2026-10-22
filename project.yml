@@ -1,0 +1,34 @@
+# Tier P: code, no data of its own. Vocabulary and required-field profile:
+# ../sop.fair-data/vocab.yml.
+#
+# Written 2026-10-22 at P0 of the trellis2 rewrite plan
+# (cancer-genomics/trellis2, docs/refactor_plan.md), which uses rblat as the
+# default backend of its pluggable aligner (decision D2).
+tier: P
+id: rblat
+venue: github
+title: "rblat -- in-process BLAT sequence alignment for R"
+status: active
+reviewed: 2026-10-22
+pi: Rob Scharpf
+
+people:
+  - {name: Rob Scharpf, jhed: rscharp1, role: pi, contact: rscharpf@jhu.edu}
+
+human_subjects: false
+phi_tier: none
+containment: not-required
+retention: keep
+
+locality: shared-remote
+backup:
+  - {mode: remote-git}
+  - {mode: dropbox-sync}
+
+# Vendored BLAT v35 (Jim Kent; djhshih/blat fork): non-commercial use only,
+# cannot be relicensed as open source. See LICENSE.
+license: {code: LicenseRef-BLAT, note: "LICENSE at the repo root; BLAT licence, non-commercial use only"}
+
+# Reciprocal edge in trellis2/project.yml (uses-tooling-from: rblat).
+related:
+  - {relation: provides-tooling-for, id: trellis2}
